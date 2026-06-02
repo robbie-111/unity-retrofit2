@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -20,10 +21,19 @@ namespace Unitrofit.Demo
         private void Awake()
         {
             // ── HTTP 클라이언트 설정 (인터셉터, 타임아웃) ─────────────────
+            // 기본값: UnityWebRequestImpl (WebGL 포함 모든 플랫폼 지원)
             var client = new UnitrofitClient.Builder()
+                .HttpClient(new NetHttpClientImpl())
                 .AddInterceptor(new LoggingInterceptor())
                 .Timeout(30)
                 .Build();
+
+            // System.Net.HttpClient 사용 시 (WebGL 미지원):
+            // var client = new UnitrofitClient.Builder()
+            //     .HttpClient(new NetHttpClientImpl())
+            //     .AddInterceptor(new LoggingInterceptor())
+            //     .Timeout(30)
+            //     .Build();
 
             // ── API 레벨 설정 (BaseUrl, Client 주입) ──────────────────────
             _api = new UnitrofitAdapter.Builder()
@@ -124,20 +134,18 @@ namespace Unitrofit.Demo
             var delRes = await api.DeleteAsync(42, cts.Token);
             Debug.Log($"  url: {delRes.url}");
 
-            // ── 9. Callback 패턴 ─────────────────────────────────────
-            Debug.Log("=== [9] GET /get (Callback) ===");
+            // ── 9. Action 콜백 패턴 ──────────────────────────────────
+            Debug.Log("=== [9] GET /get (Action 콜백) ===");
             api.GetWithCallback(
-                new Callback<HttpBinGetResponse>(
-                    onSuccess: res  => Debug.Log($"  [Callback 성공] url: {res.url}"),
-                    onError:   err  => Debug.LogError($"  [Callback 실패] {err.Message}")),
+                onSuccess: res => Debug.Log($"  [콜백 성공] url: {res.url}"),
+                onError:   err => Debug.LogError($"  [콜백 실패] {err.Message}"),
                 "callback-q1", "callback-q2");
 
-            // ── 10. Callback + POST ──────────────────────────────────
-            Debug.Log("=== [10] POST /post (Callback) ===");
+            // ── 10. Action 콜백 + POST ────────────────────────────────
+            Debug.Log("=== [10] POST /post (Action 콜백) ===");
             api.PostWithCallback(
-                new Callback<HttpBinPostResponse>(
-                    onSuccess: res => Debug.Log($"  [Callback 성공] data: {res.data}"),
-                    onError:   err => Debug.LogError($"  [Callback 실패] {err.Message}")),
+                onSuccess: res => Debug.Log($"  [콜백 성공] data: {res.data}"),
+                onError:   err => Debug.LogError($"  [콜백 실패] {err.Message}"),
                 new PostBody { name = "callback-body", value = 99 });
 
             // ── 11. CancellationToken 취소 시연 ──────────────────────

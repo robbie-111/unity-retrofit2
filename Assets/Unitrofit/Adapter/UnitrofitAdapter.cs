@@ -137,13 +137,13 @@ namespace Unitrofit.Adapter
             {
                 var first = mi.GetParameters().FirstOrDefault();
                 if (first != null && first.ParameterType.IsGenericType &&
-                    first.ParameterType.GetGenericTypeDefinition() == typeof(Callback<>))
+                    first.ParameterType.GetGenericTypeDefinition() == typeof(Action<>))
                     return RequestInfo.ReturnKind.Callback;
             }
 
             throw new Exception(
                 $"[Unitrofit] '{mi.Name}' 반환 타입은 UniTask<T>, UniTask, " +
-                $"또는 void(첫 파라미터 Callback<T>) 이어야 합니다. 현재: {ret.Name}");
+                $"또는 void(첫 파라미터 Action<T>) 이어야 합니다. 현재: {ret.Name}");
         }
 
         private static void ApplyHeadersAttrs(object[] attrs, RequestInfo info)
@@ -164,7 +164,7 @@ namespace Unitrofit.Adapter
             }
 
             if (pi.ParameterType.IsGenericType &&
-                pi.ParameterType.GetGenericTypeDefinition() == typeof(Callback<>))
+                pi.ParameterType.GetGenericTypeDefinition() == typeof(Action<>))
                 return;
 
             var attrs = pi.GetCustomAttributes(false).OfType<Attribute>().ToList();
@@ -271,11 +271,11 @@ namespace Unitrofit.Adapter
             return ExecuteVoidAsync(info, arguments);
         }
 
-        /// <summary>Callback&lt;T&gt; 패턴용. 첫 인자가 Callback&lt;T&gt;여야 한다.</summary>
-        protected void SendRequest<T>(Callback<T> callback, params object[] arguments)
+        /// <summary>Action 콜백 패턴용. 인터페이스 메서드의 첫 파라미터가 Action&lt;T&gt;여야 한다.</summary>
+        protected void SendRequest<T>(Action<T> onSuccess, Action<UnitrofitException> onError, params object[] arguments)
         {
             var info = GetCachedInfo();
-            ExecuteWithCallback(info, callback, arguments).Forget();
+            ExecuteWithCallback(info, onSuccess, onError, arguments).Forget();
         }
 
         // ── 실행 파이프라인 ───────────────────────────────────────────────
@@ -312,20 +312,20 @@ namespace Unitrofit.Adapter
                 ThrowException(raw);
         }
 
-        private async UniTaskVoid ExecuteWithCallback<T>(RequestInfo info, Callback<T> callback, object[] arguments)
+        private async UniTaskVoid ExecuteWithCallback<T>(RequestInfo info, Action<T> onSuccess, Action<UnitrofitException> onError, object[] arguments)
         {
             try
             {
                 var result = await ExecuteAsync<T>(info, arguments);
-                callback.OnSuccess?.Invoke(result);
+                onSuccess?.Invoke(result);
             }
             catch (UnitrofitException ex)
             {
-                callback.OnError?.Invoke(ex);
+                onError?.Invoke(ex);
             }
             catch (Exception ex)
             {
-                callback.OnError?.Invoke(new UnitrofitException(ex.Message, info.BuildUrl(_baseUrl), inner: ex));
+                onError?.Invoke(new UnitrofitException(ex.Message, info.BuildUrl(_baseUrl), inner: ex));
             }
         }
 

@@ -1,4 +1,3 @@
-using UnityEngine.Networking;
 using Unitrofit.Http;
 
 namespace Unitrofit.Interceptor
@@ -21,7 +20,10 @@ namespace Unitrofit.Interceptor
         /// </summary>
         void OnRequest(RequestContext context);
 
-        /// <summary>응답 수신 직후에 호출된다. 로깅, 에러 트래킹, Retry 트리거 등에 활용.</summary>
-        void OnResponse(UnityWebRequest request, RawResponse response);
+        /// <summary>
+        /// 응답 수신 직후에 호출된다. 로깅, 에러 트래킹, Retry 트리거 등에 활용.
+        /// UnityWebRequestImpl / NetHttpClientImpl 모두 동일한 시그니처로 호출된다.
+        /// </summary>
+        void OnResponse(RawResponse response);
     }
 }

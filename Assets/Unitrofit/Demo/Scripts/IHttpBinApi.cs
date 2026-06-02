@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -99,17 +100,19 @@ namespace Unitrofit.Demo
             [Query("id")] int id,
             CancellationToken ct = default);
 
-        // ── Callback 반환 ─────────────────────────────────────────────
+        // ── Action 콜백 반환 ──────────────────────────────────────────
 
         [Get("/get")]
         void GetWithCallback(
-            Callback<HttpBinGetResponse> callback,
+            Action<HttpBinGetResponse> onSuccess,
+            Action<UnitrofitException> onError,
             [Query("query1")] string q1,
             [Query("query2")] string q2);
 
         [Post("/post")]
         void PostWithCallback(
-            Callback<HttpBinPostResponse> callback,
+            Action<HttpBinPostResponse> onSuccess,
+            Action<UnitrofitException> onError,
             [Body] PostBody body);
     }
 }

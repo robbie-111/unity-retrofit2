@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -47,10 +48,10 @@ namespace Unitrofit.Demo
         public UniTask<HttpBinGetResponse> DeleteAsync(int id, CancellationToken ct)
             => SendRequest<HttpBinGetResponse>(id, ct);
 
-        public void GetWithCallback(Callback<HttpBinGetResponse> callback, string q1, string q2)
-            => SendRequest(callback, q1, q2);
+        public void GetWithCallback(Action<HttpBinGetResponse> onSuccess, Action<UnitrofitException> onError, string q1, string q2)
+            => SendRequest(onSuccess, onError, q1, q2);
 
-        public void PostWithCallback(Callback<HttpBinPostResponse> callback, PostBody body)
-            => SendRequest(callback, body);
+        public void PostWithCallback(Action<HttpBinPostResponse> onSuccess, Action<UnitrofitException> onError, PostBody body)
+            => SendRequest(onSuccess, onError, body);
     }
 }

@@ -53,7 +53,7 @@ namespace Unitrofit.Core
             UniTaskOfT,
             /// <summary>UniTask (void 결과)</summary>
             UniTask,
-            /// <summary>Callback&lt;T&gt; 패턴 (첫 파라미터가 Callback)</summary>
+            /// <summary>Action 콜백 패턴 (void 반환, 첫 파라미터가 Action&lt;T&gt;)</summary>
             Callback,
         }
 

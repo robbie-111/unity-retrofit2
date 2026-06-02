@@ -1,13 +1,13 @@
 using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Networking;
 using Unitrofit.Http;
 
 namespace Unitrofit.Interceptor
 {
     /// <summary>
     /// 요청/응답을 Unity Console에 출력하는 기본 로깅 인터셉터.
+    /// UnityWebRequestImpl / NetHttpClientImpl 모두 동작한다.
     /// <example>
     /// var client = new UnitrofitClient.Builder()
     ///     .AddInterceptor(new LoggingInterceptor())
@@ -35,10 +35,10 @@ namespace Unitrofit.Interceptor
             Debug.Log(sb.ToString());
         }
 
-        public void OnResponse(UnityWebRequest request, RawResponse response)
+        public void OnResponse(RawResponse response)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"<-- {response.StatusCode} {request.url}");
+            sb.AppendLine($"<-- {response.StatusCode} {response.Url}");
 
             sb.AppendLine("Response Body:");
             sb.AppendLine(PrettyJson(response.Body));
