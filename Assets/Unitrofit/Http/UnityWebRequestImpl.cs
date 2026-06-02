@@ -20,7 +20,20 @@ namespace Unitrofit.Http
     /// </summary>
     public class UnityWebRequestImpl : IHttpClient
     {
-        public async UniTask<RawResponse> SendAsync(string url, RequestInfo info, int timeoutSeconds, CancellationToken ct)
+        private int _timeoutSeconds = 30;
+
+        // ── IHttpClient ─────────────────────────────────────────────────
+
+        /// <summary>
+        /// 타임아웃을 설정한다.
+        /// <see cref="UnitrofitClient.Builder.Build"/>에서 자동으로 호출된다.
+        /// </summary>
+        public void SetTimeout(int timeoutSeconds)
+        {
+            _timeoutSeconds = timeoutSeconds;
+        }
+
+        public async UniTask<RawResponse> SendAsync(string url, RequestInfo info, CancellationToken ct)
         {
             // UnityWebRequest는 Unity 메인 스레드에서만 생성 가능
             await UniTask.SwitchToMainThread();
@@ -38,7 +51,7 @@ namespace Unitrofit.Http
             foreach (var kv in info.DynamicHeaders)
                 uwr.SetRequestHeader(kv.Key, kv.Value);
 
-            uwr.timeout = timeoutSeconds;
+            uwr.timeout = _timeoutSeconds;
 
             // ── 전송 ─────────────────────────────────────────────────────
             try

@@ -39,11 +39,19 @@ namespace Unitrofit.Http
             _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        // ── 공개 API ────────────────────────────────────────────────────
+        // ── IHttpClient ─────────────────────────────────────────────────
 
-        public async UniTask<RawResponse> SendAsync(string url, RequestInfo info, int timeoutSeconds, CancellationToken ct)
+        /// <summary>
+        /// 타임아웃을 설정한다. 첫 번째 요청 전에 한 번만 호출해야 한다.
+        /// <see cref="UnitrofitClient.Builder.Build"/>에서 자동으로 호출된다.
+        /// </summary>
+        public void SetTimeout(int timeoutSeconds)
         {
             _http.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        }
+
+        public async UniTask<RawResponse> SendAsync(string url, RequestInfo info, CancellationToken ct)
+        {
 
             using var req = BuildHttpRequest(url, info);
 

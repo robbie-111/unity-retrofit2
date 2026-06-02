@@ -32,13 +32,11 @@ namespace Unitrofit.Http
     {
         private readonly IHttpClient               _httpClient;
         private readonly List<IRequestInterceptor> _interceptors;
-        private readonly int                       _timeoutSeconds;
 
-        private UnitrofitClient(IHttpClient httpClient, List<IRequestInterceptor> interceptors, int timeoutSeconds)
+        private UnitrofitClient(IHttpClient httpClient, List<IRequestInterceptor> interceptors)
         {
-            _httpClient     = httpClient;
-            _interceptors   = interceptors ?? new List<IRequestInterceptor>();
-            _timeoutSeconds = timeoutSeconds;
+            _httpClient   = httpClient;
+            _interceptors = interceptors ?? new List<IRequestInterceptor>();
         }
 
         // ── 공개 API ────────────────────────────────────────────────────
@@ -53,7 +51,7 @@ namespace Unitrofit.Http
                 interceptor.OnRequest(ctx);
 
             // ── 실제 HTTP I/O — IHttpClient에 위임 ──────────────────────
-            var raw = await _httpClient.SendAsync(url, info, _timeoutSeconds, ct);
+            var raw = await _httpClient.SendAsync(url, info, ct);
 
             // ── OnResponse 체인 ──────────────────────────────────────────
             foreach (var interceptor in _interceptors)
@@ -141,7 +139,8 @@ namespace Unitrofit.Http
             public UnitrofitClient Build()
             {
                 var http = _httpClient ?? new UnityWebRequestImpl();
-                return new UnitrofitClient(http, _interceptors, _timeout);
+                http.SetTimeout(_timeout);
+                return new UnitrofitClient(http, _interceptors);
             }
         }
     }
