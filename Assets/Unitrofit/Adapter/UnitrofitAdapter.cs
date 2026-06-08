@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using UnityEngine;
 using Unitrofit.Attributes.Http;
 using Unitrofit.Converter;
 using Unitrofit.Core;
@@ -15,57 +14,39 @@ using Debug = UnityEngine.Debug;
 namespace Unitrofit.Adapter
 {
     /// <summary>
-    /// Unitrofit 핵심 추상 클래스.
+    /// Unitrofit 핵심 클래스.
     ///
-    /// Builder 방식으로 사용한다:
+    /// <see cref="Builder"/>로 어댑터를 구성한 뒤 <see cref="Create{T}"/>로 서비스를 생성한다:
     /// <code>
     /// var client = new UnitrofitClient.Builder()
     ///     .AddInterceptor(new LoggingInterceptor())
-    ///     .AddInterceptor(new AuthInterceptor())
     ///     .Timeout(30)
     ///     .Build();
     ///
-    /// var api = new UnitrofitAdapter.Builder()
+    /// var adapter = new UnitrofitAdapter.Builder()
     ///     .BaseUrl("https://api.example.com")
     ///     .Client(client)
-    ///     .Converter(new JsonConverter())
-    ///     .Build&lt;MyService&gt;(gameObject);
+    ///     .Build();
+    ///
+    /// var userApi    = adapter.Create&lt;UserService&gt;();
+    /// var productApi = adapter.Create&lt;ProductService&gt;();
     /// </code>
     /// </summary>
-    public abstract class UnitrofitAdapter : MonoBehaviour
+    public class UnitrofitAdapter
     {
         // ── 내부 상태 ────────────────────────────────────────────────────
 
-        private string         _baseUrl;
-        private IConverter     _converter;
-        private UnitrofitClient _client;
-        private Type           _apiInterface;
-        private bool           _interfaceAllowAnyStatusCode;
+        internal string          _baseUrl;
+        internal IConverter      _converter;
+        internal UnitrofitClient _client;
+        internal Type            _apiInterface;
+        internal bool            _interfaceAllowAnyStatusCode;
 
-        private readonly Dictionary<string, RequestInfo> _cache = new Dictionary<string, RequestInfo>();
-
-        // ── 내부 초기화 (Builder에서 호출) ───────────────────────────────
-
-        internal void Init(
-            string          baseUrl,
-            IConverter      converter,
-            UnitrofitClient client,
-            Type            apiInterface)
-        {
-            _baseUrl      = baseUrl;
-            _converter    = converter ?? new JsonConverter();
-            _client       = client;
-            _apiInterface = apiInterface;
-
-            _interfaceAllowAnyStatusCode = _apiInterface
-                .GetCustomAttributes(typeof(AllowAnyStatusCodeAttribute), true).Any();
-
-            BuildCache();
-        }
+        internal readonly Dictionary<string, RequestInfo> _cache = new Dictionary<string, RequestInfo>();
 
         // ── 메서드 캐시 ──────────────────────────────────────────────────
 
-        private void BuildCache()
+        internal void BuildCache()
         {
             foreach (System.Reflection.MethodInfo mi in _apiInterface.GetMethods())
             {
@@ -83,10 +64,8 @@ namespace Unitrofit.Adapter
         {
             var info = new RequestInfo();
 
-            // ── 반환 타입 판별 ──────────────────────────────────────────
             info.ReturnType = ResolveReturnKind(mi);
 
-            // ── HTTP 메서드 & 경로 ──────────────────────────────────────
             bool found = false;
             foreach (Attribute attr in mi.GetCustomAttributes(true))
             {
@@ -111,11 +90,9 @@ namespace Unitrofit.Adapter
 
             info.AllowAnyStatusCode |= _interfaceAllowAnyStatusCode;
 
-            // ── 정적 헤더 (인터페이스 → 메서드 순) ─────────────────────
             ApplyHeadersAttrs(_apiInterface.GetCustomAttributes(typeof(HeadersAttribute), true), info);
             ApplyHeadersAttrs(mi.GetCustomAttributes(typeof(HeadersAttribute), true), info);
 
-            // ── 파라미터 파싱 ───────────────────────────────────────────
             foreach (ParameterInfo pi in mi.GetParameters())
                 ParseParam(pi, info);
 
@@ -402,6 +379,31 @@ namespace Unitrofit.Adapter
             return ct;
         }
 
+        // ── Create ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 현재 어댑터 설정으로 서비스 인스턴스를 생성한다.
+        /// T는 <see cref="UnitrofitAdapter"/>를 상속하고 API 인터페이스를 구현해야 한다.
+        /// Retrofit의 <c>retrofit.create(UserApi::class.java)</c>에 대응한다.
+        /// </summary>
+        public T Create<T>() where T : UnitrofitAdapter, new()
+        {
+            if (string.IsNullOrEmpty(_baseUrl))
+                throw new InvalidOperationException("[Unitrofit] UnitrofitAdapter가 초기화되지 않았습니다.");
+
+            var api = new T();
+            api._baseUrl   = _baseUrl;
+            api._converter = _converter;
+            api._client    = _client;
+            api._apiInterface = typeof(T).GetInterfaces()
+                .FirstOrDefault(i => i != typeof(IDisposable)) ?? typeof(T);
+            api._interfaceAllowAnyStatusCode = api._apiInterface
+                .GetCustomAttributes(typeof(AllowAnyStatusCodeAttribute), true).Any();
+            api.BuildCache();
+
+            return api;
+        }
+
         // ════════════════════════════════════════════════════════════════
         // Builder — Retrofit.Builder 대응
         // ════════════════════════════════════════════════════════════════
@@ -409,11 +411,13 @@ namespace Unitrofit.Adapter
         /// <summary>
         /// UnitrofitAdapter.Builder — API 레벨 설정 (BaseUrl, Client, Converter).
         /// <code>
-        /// var api = new UnitrofitAdapter.Builder()
+        /// var adapter = new UnitrofitAdapter.Builder()
         ///     .BaseUrl("https://api.example.com")
         ///     .Client(client)
-        ///     .Converter(new JsonConverter())
-        ///     .Build&lt;MyService&gt;(gameObject);
+        ///     .Build();
+        ///
+        /// var userApi    = adapter.Create&lt;UserService&gt;();
+        /// var productApi = adapter.Create&lt;ProductService&gt;();
         /// </code>
         /// </summary>
         public class Builder
@@ -421,7 +425,6 @@ namespace Unitrofit.Adapter
             private string          _baseUrl;
             private UnitrofitClient _client;
             private IConverter      _converter;
-            private string          _goName;
 
             /// <summary>API 서버 BaseUrl. 필수.</summary>
             public Builder BaseUrl(string baseUrl)
@@ -449,40 +452,18 @@ namespace Unitrofit.Adapter
                 return this;
             }
 
-            /// <summary>생성될 GameObject의 이름. 지정하지 않으면 타입명을 사용한다.</summary>
-            public Builder Name(string name)
-            {
-                _goName = name;
-                return this;
-            }
-
-            /// <summary>
-            /// 서비스 인스턴스를 생성한다.
-            /// T는 UnitrofitAdapter를 상속하고 API 인터페이스를 구현하는 구체 클래스여야 한다.
-            /// </summary>
-            public T Build<T>(GameObject parent = null) where T : UnitrofitAdapter
+            /// <summary>설정이 완료된 UnitrofitAdapter를 생성한다.</summary>
+            public UnitrofitAdapter Build()
             {
                 if (string.IsNullOrEmpty(_baseUrl))
                     throw new InvalidOperationException("[Unitrofit] BaseUrl() 을 먼저 호출하세요.");
 
-                string goName = string.IsNullOrEmpty(_goName)
-                    ? $"Unitrofit[{typeof(T).Name}]"
-                    : _goName;
-
-                var go = new GameObject(goName);
-                if (parent != null)
-                    go.transform.SetParent(parent.transform);
-
-                var client = _client ?? new UnitrofitClient.Builder().Build();
-
-                var adapter = go.AddComponent<T>();
-                adapter.Init(
-                    _baseUrl,
-                    _converter ?? new JsonConverter(),
-                    client,
-                    typeof(T).GetInterfaces().FirstOrDefault(i => i != typeof(IDisposable)) ?? typeof(T));
-
-                return adapter;
+                return new UnitrofitAdapter
+                {
+                    _baseUrl   = _baseUrl,
+                    _converter = _converter ?? new JsonConverter(),
+                    _client    = _client    ?? new UnitrofitClient.Builder().Build()
+                };
             }
         }
     }

@@ -9,17 +9,13 @@ namespace Unitrofit.Demo
 {
     /// <summary>
     /// IHttpBinApi 구현 서비스.
-    /// UnitrofitAdapter.Builder로 생성한다:
     /// <code>
-    /// var client = new UnitrofitClient.Builder()
-    ///     .AddInterceptor(new LoggingInterceptor())
-    ///     .Timeout(30)
-    ///     .Build();
-    ///
-    /// var api = new UnitrofitAdapter.Builder()
+    /// var unitrofit = new UnitrofitAdapter.Builder()
     ///     .BaseUrl("https://httpbin.org")
     ///     .Client(client)
-    ///     .Build&lt;HttpBinService&gt;(gameObject);
+    ///     .Build();
+    ///
+    /// var api = unitrofit.Create&lt;HttpBinService&gt;();
     /// </code>
     /// </summary>
     public class HttpBinService : UnitrofitAdapter, IHttpBinApi

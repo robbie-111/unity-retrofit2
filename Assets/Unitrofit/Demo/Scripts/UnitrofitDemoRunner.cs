@@ -22,25 +22,23 @@ namespace Unitrofit.Demo
         {
             // ── HTTP 클라이언트 설정 (인터셉터, 타임아웃) ─────────────────
             // 기본값: UnityWebRequestImpl (WebGL 포함 모든 플랫폼 지원)
-            var client = new UnitrofitClient.Builder()
-                .HttpClient(new NetHttpClientImpl())
-                .AddInterceptor(new LoggingInterceptor())
-                .Timeout(30)
-                .Build();
-
-            // System.Net.HttpClient 사용 시 (WebGL 미지원):
             // var client = new UnitrofitClient.Builder()
             //     .HttpClient(new NetHttpClientImpl())
             //     .AddInterceptor(new LoggingInterceptor())
-            //     .Timeout(30)
             //     .Build();
+
+            // System.Net.HttpClient 사용 시 (WebGL 미지원):
+            var client = new UnitrofitClient.Builder()
+                .HttpClient(new NetHttpClientImpl())
+                .AddInterceptor(new LoggingInterceptor())
+                .Build();
 
             // ── API 레벨 설정 (BaseUrl, Client 주입) ──────────────────────
             _api = new UnitrofitAdapter.Builder()
                 .BaseUrl("https://httpbin.org")
                 .Client(client)
-                .Name("HttpBinService")
-                .Build<HttpBinService>(gameObject);
+                .Build()
+                .Create<HttpBinService>();
         }
 
         private async void Start()
